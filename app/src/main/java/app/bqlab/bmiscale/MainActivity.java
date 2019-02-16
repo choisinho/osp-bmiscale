@@ -60,6 +60,12 @@ public class MainActivity extends AppCompatActivity {
         //setting
         setTitle(today);
         setContentView(R.layout.activity_main);
+        findViewById(R.id.main_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, StatsActivity.class));
+            }
+        });
         mBluetooth.setBluetoothConnectionListener(new BluetoothSPP.BluetoothConnectionListener() {
             @Override
             public void onDeviceConnected(String name, String address) {
@@ -104,8 +110,8 @@ public class MainActivity extends AppCompatActivity {
                                                     mHeightPref.edit().putString(today, data).apply();
                                                     ((Button) findViewById(R.id.main_height)).setText(s);
                                                     if (weight != 0) {
-                                                        bmi = weight * (height * height);
-                                                        ((TextView)findViewById(R.id.main_bmi)).setText(bmi);
+                                                        bmi = weight / (height * height);
+                                                        ((TextView) findViewById(R.id.main_bmi)).setText(bmi);
                                                     }
                                                 }
                                             }).show();
@@ -145,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
                                                     ((Button) findViewById(R.id.main_weight)).setText(s);
                                                     if (height != 0) {
                                                         bmi = weight * (height * height);
-                                                        ((TextView)findViewById(R.id.main_bmi)).setText(bmi);
+                                                        ((TextView) findViewById(R.id.main_bmi)).setText(bmi);
                                                     }
                                                 }
                                             }).show();

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".MainActivity">
+
+    <RadioGroup
+        android:id="@+id/stats_option"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:checkedButton="@id/stats_chart_option1"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/stats_chart_option1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="신장" />
+
+        <RadioButton
+            android:id="@+id/stats_chart_option2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="체중" />
+
+        <RadioButton
+            android:id="@+id/stats_chart_option3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="BMI" />
+    </RadioGroup>
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/stats_chart"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+</LinearLayout>
