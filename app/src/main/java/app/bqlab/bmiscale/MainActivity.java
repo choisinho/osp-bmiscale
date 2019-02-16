@@ -1,9 +1,11 @@
 package app.bqlab.bmiscale;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -14,6 +16,7 @@ import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Objects;
 
 import app.akexorcist.bluetotohspp.library.BluetoothSPP;
 import app.akexorcist.bluetotohspp.library.BluetoothService;
@@ -28,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
     //variables
     String data, today;
     int height, weight, bmi;
-    boolean heightConnected, weightConnected;
+    boolean isConnected;
     //objects
     BluetoothSPP mBluetooth;
     SharedPreferences mHeightPref, mWeightPref;
@@ -37,7 +40,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         init();
-        connectToDevice();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        if (resultCode == Activity.RESULT_OK) {
+            Toast.makeText(this, "장치와 연결되는 중입니다.", Toast.LENGTH_LONG).show();
+            mBluetooth.connect(Objects.requireNonNull(data));
+        }
     }
 
     @SuppressLint("SimpleDateFormat")
@@ -48,11 +58,34 @@ public class MainActivity extends AppCompatActivity {
         mWeightPref = getSharedPreferences("weight", MODE_PRIVATE);
         today = new SimpleDateFormat("yyyyMMdd").format(Calendar.getInstance().getTime());
         //setting
+        setTitle(today);
         setContentView(R.layout.activity_main);
+        mBluetooth.setBluetoothConnectionListener(new BluetoothSPP.BluetoothConnectionListener() {
+            @Override
+            public void onDeviceConnected(String name, String address) {
+                Toast.makeText(MainActivity.this, "장치와 연결되었습니다.", Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onDeviceDisconnected() {
+                Toast.makeText(MainActivity.this, "장치와의 연결이 끊겼습니다.", Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onDeviceConnectionFailed() {
+                Toast.makeText(MainActivity.this, "장치와 연결할 수 없습니다.", Toast.LENGTH_LONG).show();
+            }
+        });
+        mBluetooth.setOnDataReceivedListener(new BluetoothSPP.OnDataReceivedListener() {
+            @Override
+            public void onDataReceived(byte[] data, String message) {
+                MainActivity.this.data = message;
+            }
+        });
         findViewById(R.id.main_height).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (heightConnected) {
+                if (mBluetooth.getServiceState() == BluetoothState.STATE_CONNECTED) {
                     mBluetooth.send(REQUEST_HEIGHT, true);
                     new AlertDialog.Builder(MainActivity.this)
                             .setTitle("신장 등록")
@@ -92,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.main_weight).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (heightConnected) {
+                if (isConnected) {
                     mBluetooth.send(REQUEST_WEIGHT, true);
                     new AlertDialog.Builder(MainActivity.this)
                             .setTitle("체중 등록")
@@ -140,6 +173,7 @@ public class MainActivity extends AppCompatActivity {
             mBluetooth.setupService();
             mBluetooth.startService(BluetoothState.DEVICE_OTHER);
             startActivity(new Intent(this, DeviceList.class));
-        }
+        } else
+            startActivity(new Intent(this, DeviceList.class));
     }
 }
