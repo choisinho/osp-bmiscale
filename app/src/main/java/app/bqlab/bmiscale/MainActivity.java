@@ -2,6 +2,7 @@ package app.bqlab.bmiscale;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -9,11 +10,13 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.security.AlgorithmConstraints;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Objects;
@@ -29,9 +32,8 @@ public class MainActivity extends AppCompatActivity {
     final String REQUEST_HEIGHT = "1";
     final String REQUEST_WEIGHT = "2";
     //variables
-    String data, today;
+    String today;
     int height, weight, bmi;
-    boolean isConnected;
     //objects
     BluetoothSPP mBluetooth;
     SharedPreferences mHeightPref, mWeightPref;
@@ -40,19 +42,26 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         init();
+        connectToDevice();
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        if (resultCode == Activity.RESULT_OK) {
-            Toast.makeText(this, "장치와 연결되는 중입니다.", Toast.LENGTH_LONG).show();
-            mBluetooth.connect(Objects.requireNonNull(data));
+        if (requestCode == BluetoothState.REQUEST_CONNECT_DEVICE) {
+            if (resultCode == Activity.RESULT_OK) {
+                mBluetooth.connect(data);
+            }
         }
     }
 
     @SuppressLint("SimpleDateFormat")
     private void init() {
         //initialing
+        if (mBluetooth != null) {
+            mBluetooth.disconnect();
+            mBluetooth.stopService();
+            mBluetooth = null;
+        }
         mBluetooth = new BluetoothSPP(this);
         mHeightPref = getSharedPreferences("height", MODE_PRIVATE);
         mWeightPref = getSharedPreferences("weight", MODE_PRIVATE);
@@ -75,111 +84,56 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDeviceDisconnected() {
                 Toast.makeText(MainActivity.this, "장치와의 연결이 끊겼습니다.", Toast.LENGTH_LONG).show();
+                connectToDevice();
             }
 
             @Override
             public void onDeviceConnectionFailed() {
                 Toast.makeText(MainActivity.this, "장치와 연결할 수 없습니다.", Toast.LENGTH_LONG).show();
+                connectToDevice();
             }
         });
         mBluetooth.setOnDataReceivedListener(new BluetoothSPP.OnDataReceivedListener() {
             @Override
             public void onDataReceived(byte[] data, String message) {
-                MainActivity.this.data = message;
-            }
-        });
-        findViewById(R.id.main_height).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (mBluetooth.getServiceState() == BluetoothState.STATE_CONNECTED) {
-                    mBluetooth.send(REQUEST_HEIGHT, true);
-                    new AlertDialog.Builder(MainActivity.this)
-                            .setTitle("신장 등록")
-                            .setMessage("오늘의 신장을 등록합니다. 장치의 전원을 키고 다음 버튼을 누르세요.")
-                            .setPositiveButton("다음", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    String s = data + "가 맞다면 확인 버튼을 누르세요.";
-                                    new AlertDialog.Builder(MainActivity.this)
-                                            .setMessage(s)
-                                            .setPositiveButton("확인", new DialogInterface.OnClickListener() {
-                                                @Override
-                                                public void onClick(DialogInterface dialog, int which) {
-                                                    String s = data + "cm";
-                                                    height = Integer.parseInt(data);
-                                                    mHeightPref.edit().putString(today, data).apply();
-                                                    ((Button) findViewById(R.id.main_height)).setText(s);
-                                                    if (weight != 0) {
-                                                        bmi = weight / (height * height);
-                                                        ((TextView) findViewById(R.id.main_bmi)).setText(bmi);
-                                                    }
-                                                }
-                                            }).show();
-                                }
-                            })
-                            .setNegativeButton("취소", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.dismiss();
-                                }
-                            }).show();
+                if (Integer.parseInt(message) >= 120) {
+                    mHeightPref.edit().putString(getPreviousDay(0), message).apply();
+                    ((TextView) findViewById(R.id.main_height)).setText(message);
                 } else {
-                    connectToDevice();
+                    mWeightPref.edit().putString(getPreviousDay(0), message).apply();
+                    ((TextView) findViewById(R.id.main_weight)).setText(message);
                 }
-            }
-        });
-        findViewById(R.id.main_weight).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (isConnected) {
-                    mBluetooth.send(REQUEST_WEIGHT, true);
-                    new AlertDialog.Builder(MainActivity.this)
-                            .setTitle("체중 등록")
-                            .setMessage("오늘의 체중을 등록합니다. 장치의 전원을 키고 다음 버튼을 누르세요.")
-                            .setPositiveButton("다음", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    String s = data + "가 맞다면 확인 버튼을 누르세요.";
-                                    new AlertDialog.Builder(MainActivity.this)
-                                            .setMessage(s)
-                                            .setPositiveButton("확인", new DialogInterface.OnClickListener() {
-                                                @Override
-                                                public void onClick(DialogInterface dialog, int which) {
-                                                    String s = data + "cm";
-                                                    weight = Integer.parseInt(data);
-                                                    mWeightPref.edit().putString(today, data).apply();
-                                                    ((Button) findViewById(R.id.main_weight)).setText(s);
-                                                    if (height != 0) {
-                                                        bmi = weight * (height * height);
-                                                        ((TextView) findViewById(R.id.main_bmi)).setText(bmi);
-                                                    }
-                                                }
-                                            }).show();
-                                }
-                            })
-                            .setNegativeButton("취소", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.dismiss();
-                                }
-                            }).show();
-                } else {
-                    connectToDevice();
+                if (!Objects.equals(mHeightPref.getString(getPreviousDay(0), "0"), "0")
+                        && !Objects.equals(mWeightPref.getString(getPreviousDay(0), "0"), "0")) {
+                    int height = Integer.parseInt(Objects.requireNonNull(mHeightPref.getString(getPreviousDay(0), "0")));
+                    int weight = Integer.parseInt(Objects.requireNonNull(mWeightPref.getString(getPreviousDay(0), "0")));
+                    ((TextView) findViewById(R.id.main_bmi)).setText(String.format("%.2f",(float) weight / ((float) height * (float) height) * 10000f ));
                 }
             }
         });
     }
 
+    @SuppressLint("SimpleDateFormat")
+    private String getPreviousDay(int ago) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(Calendar.getInstance().getTime());
+        calendar.add(Calendar.DAY_OF_YEAR, -ago);
+        return new SimpleDateFormat("yyyyMMdd").format(calendar.getTime());
+    }
+
     private void connectToDevice() {
-        if (!mBluetooth.isBluetoothAvailable()) {
+        if (!this.mBluetooth.isBluetoothAvailable()) {
             Toast.makeText(this, "지원하지 않는 기기입니다.", Toast.LENGTH_LONG).show();
-        } else if (!mBluetooth.isBluetoothEnabled()) {
-            Toast.makeText(this, "블루투스가 활성화되지 않았습니다.", Toast.LENGTH_LONG).show();
-        } else if (!mBluetooth.isServiceAvailable()) {
-            mBluetooth.setupService();
-            mBluetooth.startService(BluetoothState.DEVICE_OTHER);
-            startActivity(new Intent(this, DeviceList.class));
-        } else
-            startActivity(new Intent(this, DeviceList.class));
+        } else if (!this.mBluetooth.isBluetoothEnabled()) {
+            Toast.makeText(this, "블루투스를 활성화해야 합니다.", Toast.LENGTH_LONG).show();
+            finishAffinity();
+        } else if (!this.mBluetooth.isServiceAvailable()) {
+            this.mBluetooth.setupService();
+            this.mBluetooth.startService(BluetoothState.DEVICE_OTHER);
+            connectToDevice();
+        } else if (mBluetooth.getServiceState() != BluetoothState.STATE_CONNECTED) {
+            startActivityForResult(new Intent(getApplicationContext(), DeviceList.class), BluetoothState.REQUEST_CONNECT_DEVICE);
+            Toast.makeText(this, "연결할 디바이스를 선택하세요.", Toast.LENGTH_LONG).show();
+        }
     }
 }

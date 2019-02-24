@@ -26,14 +26,13 @@
                 android:textStyle="bold" />
 
 
-            <Button
+            <TextView
                 android:id="@+id/main_height"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_marginStart="10dp"
-                android:text="등록"
-                android:textSize="18sp"
-                />
+                android:text="0"
+                android:textSize="18sp" />
         </LinearLayout>
 
         <LinearLayout
@@ -49,14 +48,13 @@
                 android:textStyle="bold" />
 
 
-            <Button
+            <TextView
                 android:id="@+id/main_weight"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
-                android:text="등록"
-                android:textSize="18sp"
-                />
+                android:text="0"
+                android:textSize="18sp" />
         </LinearLayout>
 
         <LinearLayout
@@ -67,7 +65,6 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="2.5dp"
                 android:text="BMI:"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -78,7 +75,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
-                android:text="키와 몸 무게를 등록하세요."
+                android:text="0"
                 android:textSize="18sp" />
         </LinearLayout>
     </LinearLayout>

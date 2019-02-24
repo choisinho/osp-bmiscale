@@ -44,7 +44,7 @@ public class StatsActivity extends AppCompatActivity {
     @SuppressLint("SimpleDateFormat")
     private void init() {
         //initialing
-        option = 1;
+        option = OPTION_HEIGHT;
         mHeightPref = getSharedPreferences("height", MODE_PRIVATE);
         mWeightPref = getSharedPreferences("weight", MODE_PRIVATE);
         //setting
@@ -86,7 +86,7 @@ public class StatsActivity extends AppCompatActivity {
                     String day = getPreviousDay(10 - i);
                     int height = Integer.parseInt(Objects.requireNonNull(mHeightPref.getString(day, "0")));
                     int weight = Integer.parseInt(Objects.requireNonNull(mWeightPref.getString(day, "0")));
-                    int bmi = weight / (height * height);
+                    float bmi = (float) weight / ((float) height * (float) height) * 10000f;
                     entry = new Entry(Integer.parseInt(day), bmi);
                 } catch (ArithmeticException e) {
                     entry = new Entry(Integer.parseInt(getPreviousDay(10 - i)), 0);
