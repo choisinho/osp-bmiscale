@@ -43,6 +43,8 @@ public class StatsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         init();
         resetLineChart();
+        mHeightPref.edit().putString(getPreviousDay(0), "169").apply();
+        mWeightPref.edit().putString(getPreviousDay(0), "55").apply();
     }
 
     @SuppressLint("SimpleDateFormat")
@@ -57,7 +59,17 @@ public class StatsActivity extends AppCompatActivity {
         ((RadioGroup) findViewById(R.id.stats_option)).setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(final RadioGroup group, int checkedId) {
-                option = checkedId;
+                switch (checkedId) {
+                    case R.id.stats_chart_option1:
+                        option = OPTION_HEIGHT;
+                        break;
+                    case R.id.stats_chart_option2:
+                        option = OPTION_WEIGHT;
+                        break;
+                    case R.id.stats_chart_option3:
+                        option = OPTION_BMI;
+                        break;
+                }
                 resetLineChart();
             }
         });
@@ -85,26 +97,27 @@ public class StatsActivity extends AppCompatActivity {
         String[] labels = new String[10];
         for (int i = 0; i < 10; i++) {
             Entry entry = null;
-            labels[i] = new SimpleDateFormat("MM/dd").format(getPreviousDayByDate(10 - (i + 1)));
+            int index = 10 - (i + 1);
+            labels[i] = new SimpleDateFormat("MM/dd").format(getPreviousDayByDate(index));
             if (option == OPTION_HEIGHT) {
-                String day = getPreviousDay(10 - i);
+                String day = getPreviousDay(index);
                 String height = mHeightPref.getString(day, "0");
                 assert height != null;
                 entry = new Entry(i, Integer.parseInt(height));
             } else if (option == OPTION_WEIGHT) {
-                String day = getPreviousDay(10 - i);
+                String day = getPreviousDay(index);
                 String weight = mWeightPref.getString(day, "0");
                 assert weight != null;
                 entry = new Entry(i, Integer.parseInt(weight));
             } else if (option == OPTION_BMI) {
                 try {
-                    String day = getPreviousDay(10 - i);
+                    String day = getPreviousDay(index);
                     int height = Integer.parseInt(Objects.requireNonNull(mHeightPref.getString(day, "0")));
                     int weight = Integer.parseInt(Objects.requireNonNull(mWeightPref.getString(day, "0")));
                     float bmi = (float) weight / ((float) height * (float) height) * 10000f;
                     entry = new Entry(i, bmi);
                 } catch (ArithmeticException e) {
-                    entry = new Entry(Integer.parseInt(getPreviousDay(10 - i)), 0);
+                    entry = new Entry(Integer.parseInt(getPreviousDay(index)), 0);
                 }
             }
             entries.add(entry);
@@ -115,6 +128,7 @@ public class StatsActivity extends AppCompatActivity {
         dataSets.add(dataSet);
         LineData data = new LineData(dataSets);
         mChart = findViewById(R.id.stats_chart);
+        mChart.invalidate();
         mChart.setDragEnabled(true);
         mChart.setScaleEnabled(true);
         mChart.setData(data);
